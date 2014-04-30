@@ -2929,6 +2929,7 @@ void AudioFlinger::MixerThread::threadLoop_mix()
     if (status != NO_ERROR) {
         pts = AudioBufferProvider::kInvalidPTS;
     }
+#endif
 
     // mix buffers...
     mAudioMixer->process(pts);

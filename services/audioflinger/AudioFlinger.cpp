@@ -933,6 +933,7 @@ status_t AudioFlinger::setMasterMute(bool muted)
     // assigned to HALs which do not have master mute support will apply master
     // mute during the mix operation.  Threads with HALs which do support master
     // mute will simply ignore the setting.
+#ifndef ICS_AUDIO_BLOB
     for (size_t i = 0; i < mPlaybackThreads.size(); i++)
         mPlaybackThreads.valueAt(i)->setMasterMute(muted);
 #endif
@@ -2193,6 +2194,11 @@ audio_io_handle_t AudioFlinger::openInput(audio_module_handle_t module,
     inHwDev = findSuitableHwDev_l(module, *pDevices);
     if (inHwDev == NULL)
         return 0;
+#ifdef STE_AUDIO
+    if (pInputClientId != NULL && *pInputClientId == AUDIO_INPUT_CLIENT_PLAYBACK) {
+        returnRecordThread = false;
+    }
+#endif
 
 #ifdef STE_AUDIO
     if (pInputClientId != NULL && *pInputClientId == AUDIO_INPUT_CLIENT_PLAYBACK) {
