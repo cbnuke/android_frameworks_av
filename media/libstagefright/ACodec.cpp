@@ -3980,19 +3980,6 @@ bool ACodec::LoadedState::onConfigureComponent(
     }
 #endif
 
-    AString mime;
-    CHECK(msg->findString("mime", &mime));
-
-    status_t err = mCodec->configureCodec(mime.c_str(), msg);
-
-    if (err != OK) {
-        ALOGE("[%s] configureCodec returning error %d",
-              mCodec->mComponentName.c_str(), err);
-
-        mCodec->signalError(OMX_ErrorUndefined, err);
-        return false;
-    }
-
     sp<RefBase> obj;
     if (msg->findObject("native-window", &obj)
             && strncmp("OMX.google.", mCodec->mComponentName.c_str(), 11)) {
