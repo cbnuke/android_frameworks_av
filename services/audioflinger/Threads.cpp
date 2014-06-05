@@ -2924,7 +2924,6 @@ void AudioFlinger::MixerThread::threadLoop_mix()
     } else {
         status = mOutputSink->getNextWriteTimestamp(&pts);
     }
-#endif
 
     if (status != NO_ERROR) {
         pts = AudioBufferProvider::kInvalidPTS;
