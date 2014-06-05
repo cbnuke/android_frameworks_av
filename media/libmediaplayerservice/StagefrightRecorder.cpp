@@ -57,9 +57,6 @@
 #include <utils/String8.h>
 #include <cutils/properties.h>
 
-#include <utils/String8.h>
-#include <cutils/properties.h>
-
 #include <utils/Errors.h>
 #include <sys/types.h>
 #include <ctype.h>
@@ -80,8 +77,6 @@
 #define RES_720P (720*1280)
 #define DUR_30MIN (30*60*1000*1000)
 #define DUR_10MIN (10*60*1000*1000)
-
-#define DEFAULT_VIDEO_ENCODER "ro.default.video.encoder"
 
 #define DEFAULT_VIDEO_ENCODER "ro.default.video.encoder"
 
