@@ -874,14 +874,6 @@ public:
 #ifdef QCOM_HARDWARE
     static const char PIXEL_FORMAT_YUV420SP_ADRENO[]; // ADRENO
 #endif
-#ifdef STE_HARDWARE
-    static const char PIXEL_FORMAT_YUV420SPNV12[]; // NV12
-    static const char PIXEL_FORMAT_YVU422SP[];
-    static const char PIXEL_FORMAT_YVU422P[];
-    static const char PIXEL_FORMAT_YVU420SP[];
-    static const char PIXEL_FORMAT_YVU420P[];
-    static const char PIXEL_FORMAT_YUV420MB[];
-#endif
     static const char PIXEL_FORMAT_YUV422I[]; // YUY2
     static const char PIXEL_FORMAT_YUV420P[]; // YV12
     static const char PIXEL_FORMAT_RGB565[];
@@ -960,12 +952,6 @@ public:
     static const char LIGHTFX_LOWLIGHT[];
     // High-dynamic range mode
     static const char LIGHTFX_HDR[];
-
-#ifdef STE_HARDWARE
-    // keys for record stride and slice height
-    static const char KEY_RECORD_STRIDE[];
-    static const char KEY_RECORD_SLICE_HEIGHT[];
-#endif
 
 #ifdef QCOM_HARDWARE
     // Normal focus mode. Applications should call
