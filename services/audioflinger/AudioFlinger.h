@@ -45,7 +45,6 @@
 #include <utils/TypeHelpers.h>
 #include <utils/Vector.h>
 
-#include <binder/AppOpsManager.h>
 #include <binder/BinderService.h>
 #include <binder/MemoryDealer.h>
 
@@ -383,12 +382,10 @@ private:
     // --- Client ---
     class Client : public RefBase {
     public:
-                            Client(const sp<AudioFlinger>& audioFlinger, pid_t pid,
-                                    const String16 clientName);
+                            Client(const sp<AudioFlinger>& audioFlinger, pid_t pid);
         virtual             ~Client();
         sp<MemoryDealer>    heap() const;
         pid_t               pid() const { return mPid; }
-        String16            clientName() const { return mClientName; }
         sp<AudioFlinger>    audioFlinger() const { return mAudioFlinger; }
 
         bool reserveTimedTrack();
@@ -400,7 +397,6 @@ private:
         const sp<AudioFlinger> mAudioFlinger;
         const sp<MemoryDealer> mMemoryDealer;
         const pid_t         mPid;
-        const String16      mClientName;
 
         Mutex               mTimedTrackLock;
         int                 mTimedTrackCount;
@@ -857,10 +853,6 @@ private:
     bool    mIsLowRamDevice;
     bool    mIsDeviceTypeKnown;
     nsecs_t mGlobalEffectEnableTime;  // when a global effect was last enabled
-
-    // To check audio record access
-    AppOpsManager mAppOpsManager;
-    bool    checkAudioRecordOp();
 };
 
 #undef INCLUDING_FROM_AUDIOFLINGER_H
