@@ -481,7 +481,12 @@ sp<MediaSource> OMXCodec::Create(
     Vector<CodecNameAndQuirks> matchingCodecs;
 
 #ifdef QCOM_HARDWARE
-    if (ExtendedCodec::useHWAACDecoder(mime)) {
+    int channelCount = 0;
+    int trackId = 0;
+    meta->findInt32(kKeyChannelCount, &channelCount);
+    source->getFormat()->findInt32(kKeyTrackID, &trackId);
+    if (ExtendedCodec::useHWAACDecoder(mime, channelCount) && !createEncoder
+            && trackId > 1) {
         findMatchingCodecs(mime, createEncoder,
             "OMX.qcom.audio.decoder.multiaac", flags, &matchingCodecs);
     } else {
@@ -6011,13 +6016,14 @@ status_t OMXCodec::pause() {
     CODEC_LOGV("pause mState=%d", mState);
 
     Mutex::Autolock autoLock(mLock);
-    if (mState != EXECUTING) {
-        return UNKNOWN_ERROR;
-    }
-    while (isIntermediateState(mState)) {
-        mAsyncCompletion.wait(mLock);
-    }
     if (!strncmp(mComponentName, "OMX.qcom.", 9) && !mIsEncoder) {
+        if (mState != EXECUTING) {
+            return UNKNOWN_ERROR;
+        }
+        while (isIntermediateState(mState)) {
+            mAsyncCompletion.wait(mLock);
+        }
+
         status_t err = mOMX->sendCommand(mNode,
             OMX_CommandStateSet, OMX_StatePause);
         CHECK_EQ(err, (status_t)OK);
