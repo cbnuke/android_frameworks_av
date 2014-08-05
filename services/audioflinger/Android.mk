@@ -38,6 +38,7 @@ LOCAL_CFLAGS += -DSTE_AUDIO
 LOCAL_CFLAGS += -Wno-conversion -fpermissive
 endif
 LOCAL_SRC_FILES:=               \
+    PackageManager.cpp          \
     AudioFlinger.cpp            \
     Threads.cpp                 \
     Tracks.cpp                  \
