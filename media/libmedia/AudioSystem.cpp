@@ -666,17 +666,13 @@ audio_io_handle_t AudioSystem::getOutput(audio_stream_type_t stream,
 {
     const sp<IAudioPolicyService>& aps = AudioSystem::get_audio_policy_service();
     if (aps == 0) return 0;
-<<<<<<< HEAD
-#ifdef STE_AUDIO
-    return aps->getOutput(stream, samplingRate, format, channelMask, flags, NULL);
-#else
-=======
 
     if (stream == AUDIO_STREAM_DEFAULT) {
         stream = AUDIO_STREAM_MUSIC;
     }
-
->>>>>>> 331e8cc... frameworks/av: miscellaneous fixes
+#ifdef STE_AUDIO
+    return aps->getOutput(stream, samplingRate, format, channelMask, flags, NULL);
+#else
     return aps->getOutput(stream, samplingRate, format, channelMask, flags, offloadInfo);
 #endif
 }
