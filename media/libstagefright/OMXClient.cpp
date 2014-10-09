@@ -27,8 +27,8 @@
 #include "include/OMX.h"
 
 #ifdef STE_HARDWARE
-#include <include/OMX_Video.h>
-#include <include/OMX_Index.h>
+#include "include/OMX_Video.h"
+#include "include/OMX_Index.h"
 #endif
 
 namespace android {
@@ -256,7 +256,7 @@ status_t MuxOMX::getParameter(
 	if(index == OMX_IndexParamVideoProfileLevelQuerySupported){
 		OMX_VIDEO_PARAM_PROFILELEVELTYPE *pt = (OMX_VIDEO_PARAM_PROFILELEVELTYPE *)params;
 		ALOGI("Meticulus: eProfile=%lu eLevel=%lu nProfileIndex=%lu\n",pt->eProfile, pt->eLevel, pt->nProfileIndex);
-		if(pt->nProfileIndex == 0){
+		if(pt->nProfileIndex >= 3 || pt->nProfileIndex == 0){
 			return -1;
 		}
 		
