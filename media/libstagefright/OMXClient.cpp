@@ -27,8 +27,8 @@
 #include "include/OMX.h"
 
 #ifdef STE_HARDWARE
-#include "include/OMX_Video.h"
-#include "include/OMX_Index.h"
+#include <OMX_Video.h>
+#include <OMX_Index.h>
 #endif
 
 namespace android {
