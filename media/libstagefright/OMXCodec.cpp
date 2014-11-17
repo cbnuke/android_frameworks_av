@@ -436,14 +436,20 @@ uint32_t OMXCodec::getComponentQuirks(
       quirks |= kInputBufferSizesAreBogus;
     }
 #endif
+#ifdef QCOM_HARDWARE
+    quirks |= ExtendedCodec::getComponentQuirks(list,index);
+#endif
+
 #ifdef STE_HARDWARE
     if (list->codecHasQuirk(
                 index, "requires-store-metadata-before-idle")) {
-      quirks |= kRequiresStoreMetaDataBeforeIdle;
+        quirks |= kRequiresStoreMetaDataBeforeIdle;
+        quirks |= kStoreMetaDataInVideoBuffers;
     }
-#endif
-#ifdef QCOM_HARDWARE
-    quirks |= ExtendedCodec::getComponentQuirks(list,index);
+    if (list->codecHasQuirk(
+                index, "override-default-avc-profile")) {
+        quirks |= kOverrideDefaultAVCProfile;
+    }
 #endif
 
     return quirks;
@@ -685,6 +691,56 @@ status_t OMXCodec::parseAVCCodecSpecificData(
     return OK;
 }
 
+status_t OMXCodec::parseVC1CodecSpecificData(
+        const void *data, size_t size) {
+    static const uint32_t kVC1StartCode = 0x000001;
+    const uint8_t *ptr = (const uint8_t *)data;
+    uint32_t startCode = 0;
+
+    //************************************************************************************
+    // strf chunk of AVI stream has Sequence Header and Entry point Header which are     *
+    // specific to VC1-advanced profile stream                                           *
+    // --------------------------------------------------------------------------------- *
+    //                           'strf' Chunk                                            *
+    //         Sequence Header Start Code(SH)     --> 0x00 00 01 0f                      *
+    //         Entry Point Header Start Code(EPH) --> 0x00 00 01 0e                      *
+    // strf Chunk starts with 4 bytes of ChunkSize, 4 bytes of Width & 4 bytes of Height *
+    // followed by SH and EPH as shown below. Size of SH & EPH would not be part of      *
+    // stream data, needs to identify the same based on strf Chunk size                  *
+    // -----------------------------------------------------------------------           *
+    // |      |      |      |      |      |      |      |      |      |      |           *
+    // |  00  |  00  |  01  |  0f  |  xx  |  xx  |  xx  |  xx  |  xx  |  xx  |           *
+    // |      |      |      |      |      |      |      |      |      |      |           *
+    // -----------------------------------------------------------------------           *
+    // |      |      |      |      |      |      |      |      |      |      |           *
+    // |  00  |  00  |  01  |  0e  |  xx  |  xx  |  xx  |  xx  |  xx  |  xx  |           *
+    // |      |      |      |      |      |      |      |      |      |      |           *
+    // -----------------------------------------------------------------------           *
+    // minimum size should be less than 6 bytes as header is of 4 bytes                  *
+    // and atleast 1 byte of data. Checking for VC1 Start Code                           *
+    //***********************************************************************************/
+
+    startCode = (ptr[0] << 16) | (ptr[1] << 8) | ptr[2];
+    if (size < 6 || startCode != kVC1StartCode) {
+        return ERROR_MALFORMED;
+    }
+
+    // ReSync to the next start code to separate Sequence Header and Entry Point Header
+    uint32_t dataindex = 2;
+    uint32_t sizeOfSequenceHeader, sizeOfEntryPointHeader;
+    startCode = 0;
+    while (startCode != kVC1StartCode && dataindex < size) {
+        dataindex++;
+        startCode = (ptr[dataindex] << 16) | (ptr[dataindex + 1] << 8) |
+                ptr[dataindex + 2];
+    }
+    sizeOfSequenceHeader = dataindex;
+    addCodecSpecificData(ptr, sizeOfSequenceHeader);
+    sizeOfEntryPointHeader = size - dataindex;
+    addCodecSpecificData(ptr + dataindex, sizeOfEntryPointHeader);
+    return OK;
+}
+
 status_t OMXCodec::configureCodec(const sp<MetaData> &meta) {
     ALOGV("configureCodec protected=%d",
          (mFlags & kEnableGrallocUsageProtected) ? 1 : 0);
@@ -844,6 +900,22 @@ status_t OMXCodec::configureCodec(const sp<MetaData> &meta) {
         if (meta->findData(kKeyAacCodecSpecificData, &type, &data, &size)) {
             ALOGV("OMXCodec:: configureCodec found kKeyAacCodecSpecificData of size %d\n", size);
             addCodecSpecificData(data, size);
+        } else if (meta->findData(kKeyWMAInfo, &type, &data, &size)) {
+            addCodecSpecificData(data, size);
+        } else if (meta->findData(kKeyVC1Info, &type, &data, &size)) {
+            status_t err;
+            // *************************************************************** *
+            // In case of VC-1 Advanced Profile, the following function shall  *
+            // parse the metadata, generate the codecSpecificData and push the *
+            // same into codecSpecificData List and return a OK                *
+            // In case of VC-1 Simple or Main Profile streams, the function    *
+            // returns an error code based on which the codecSpecificData      *
+            // generated by the extractor is directly pushed into the list.    *
+            // *************************************************************** *
+            err = parseVC1CodecSpecificData(data, size);
+            if (err != OK) {
+                addCodecSpecificData(data, size);
+            }
         }
 #endif
     } else if (!strcasecmp(MEDIA_MIMETYPE_AUDIO_MPEG, mMIME)) {
@@ -1636,6 +1708,9 @@ status_t OMXCodec::setupAVCEncoderParameters(const sp<MetaData>& meta) {
     if (ExtendedUtils::isAVCProfileSupported(h264type.eProfile)){
         ALOGI("Profile type is  %d ",h264type.eProfile);
     } else if (h264type.eProfile != OMX_VIDEO_AVCProfileBaseline) {
+#elif defined (STE_HARDWARE)
+    if ((h264type.eProfile != OMX_VIDEO_AVCProfileBaseline) &&
+        (!(mQuirks & kOverrideDefaultAVCProfile))) {
 #else
     if (h264type.eProfile != OMX_VIDEO_AVCProfileBaseline) {
 #endif
@@ -1726,8 +1801,13 @@ status_t OMXCodec::setVideoOutputFormat(
                 return err;
             }
             compressionFormat = OMX_VIDEO_CodingRV;
+#ifdef STE_HARDWARE
+	} else if (!strcasecmp(MEDIA_MIMETYPE_VIDEO_VC1, mime)) {
+            compressionFormat = OMX_VIDEO_CodingWMV;
+#else
         } else if (!strcasecmp(MEDIA_MIMETYPE_VIDEO_VC1, mime)) {
             compressionFormat = OMX_VIDEO_CodingVC1;
+#endif
         } else if (!strcasecmp(MEDIA_MIMETYPE_VIDEO_FLV1, mime)) {
             compressionFormat = OMX_VIDEO_CodingFLV1;
         } else if (!strcasecmp(MEDIA_MIMETYPE_VIDEO_DIVX, mime)) {
@@ -1987,6 +2067,8 @@ void OMXCodec::setComponentRole(
             "audio_decoder.aac", "audio_encoder.aac" },
         { MEDIA_MIMETYPE_AUDIO_VORBIS,
             "audio_decoder.vorbis", "audio_encoder.vorbis" },
+        { MEDIA_MIMETYPE_AUDIO_WMA,
+            "audio_decoder.wmapro", "audio_encoder.wmapro" },
         { MEDIA_MIMETYPE_AUDIO_G711_MLAW,
             "audio_decoder.g711mlaw", "audio_encoder.g711mlaw" },
         { MEDIA_MIMETYPE_AUDIO_G711_ALAW,
@@ -5652,6 +5734,9 @@ static const char *audioCodingTypeString(OMX_AUDIO_CODINGTYPE type) {
         "OMX_AUDIO_CodingRA",
         "OMX_AUDIO_CodingMIDI",
         "OMX_AUDIO_CodingFLAC",
+#ifdef STE_HARDWARE
+        "OMX_AUDIO_CodingWMAPRO",
+#endif
 #ifdef DOLBY_UDC
         "OMX_AUDIO_CodingDDP",
 #endif // DOLBY_UDC
@@ -6035,6 +6120,9 @@ void OMXCodec::initOutputFormat(const sp<MetaData> &inputFormat) {
             } else if (video_def->eCompressionFormat == OMX_VIDEO_CodingAVC) {
                 mOutputFormat->setCString(
                         kKeyMIMEType, MEDIA_MIMETYPE_VIDEO_AVC);
+            } else if (video_def->eCompressionFormat == OMX_VIDEO_CodingWMV) {
+                mOutputFormat->setCString(
+                        kKeyMIMEType, MEDIA_MIMETYPE_VIDEO_VC1);
             } else {
                 CHECK(!"Unknown compression format.");
             }

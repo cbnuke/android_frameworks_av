@@ -116,6 +116,7 @@ struct OMXCodec : public MediaSource,
 #endif
 #ifdef STE_HARDWARE
         kRequiresStoreMetaDataBeforeIdle      = 16384,
+        kOverrideDefaultAVCProfile            = 32768,
 #endif
     };
 
@@ -401,6 +402,8 @@ private:
     status_t parseAVCCodecSpecificData(
             const void *data, size_t size,
             unsigned *profile, unsigned *level);
+    status_t parseVC1CodecSpecificData(
+            const void *data, size_t size);
 
     status_t stopOmxComponent_l();
     status_t flushBuffersOnError();

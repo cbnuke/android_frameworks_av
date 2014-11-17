@@ -33,6 +33,15 @@
 
 #include <private/gui/ComposerService.h>
 
+#include <ui/GraphicBufferMapper.h>
+#include <ui/Region.h>
+#include <hardware/hardware.h>
+#include <ui/PixelFormat.h>
+
+#include <cutils/properties.h>
+
+#define STE_ENCODER_COLOR_FORMAT "ste.video.enc.fmt"
+
 namespace android {
 
 SurfaceMediaSource::SurfaceMediaSource(uint32_t bufferWidth, uint32_t bufferHeight) :
@@ -65,6 +74,10 @@ SurfaceMediaSource::SurfaceMediaSource(uint32_t bufferWidth, uint32_t bufferHeig
 #endif
 
     sp<ISurfaceComposer> composer(ComposerService::getComposerService());
+    mGraphicBufferAlloc = composer->createGraphicBufferAlloc();
+    if (mGraphicBufferAlloc == NULL) {
+        ALOGE("createGraphicBufferAlloc() failed in SurfaceMediaSource");
+    }
 
     // Note that we can't create an sp<...>(this) in a ctor that will not keep a
     // reference once the ctor ends, as that would cause the refcount of 'this'
@@ -397,10 +410,15 @@ void SurfaceMediaSource::signalBufferReturned(MediaBuffer *buffer) {
     Mutex::Autolock lock(mMutex);
 
     buffer_handle_t bufferHandle = getMediaBufferHandle(buffer);
+    buffer_handle_t graphicbufferHandle = NULL;
 
     for (size_t i = 0; i < mCurrentBuffers.size(); i++) {
         if (mCurrentBuffers[i]->handle == bufferHandle) {
             mCurrentBuffers.removeAt(i);
+            if (mCurrentBuffersDQ.itemAt(i) != NULL) {
+                graphicbufferHandle = mCurrentBuffersDQ.itemAt(i)->handle;
+                mCurrentBuffersDQ.removeAt(i);
+            }
             foundBuffer = true;
             break;
         }

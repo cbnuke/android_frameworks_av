@@ -543,6 +543,7 @@ const char CameraParameters::PIXEL_FORMAT_YVU422SP[] = "yvu422sp";
 const char CameraParameters::PIXEL_FORMAT_YVU422P[] = "yvu422p";
 const char CameraParameters::PIXEL_FORMAT_YVU420SP[] = "yvu420sp";
 const char CameraParameters::PIXEL_FORMAT_YVU420P[]  = "yvu420p";
+const char CameraParameters::PIXEL_FORMAT_UYV422I[] = "yuv422i-uyvy";
 const char CameraParameters::FOCUS_MODE_FACEDETECT[] = "facedetect";
 const char CameraParameters::FOCUS_MODE_TOUCHAF[] = "touchaf";
 const char CameraParameters::ISO_50[] = "ISO50";
