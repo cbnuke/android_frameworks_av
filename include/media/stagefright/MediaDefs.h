@@ -45,6 +45,7 @@ extern const char *MEDIA_MIMETYPE_AUDIO_MPEG;           // layer III
 extern const char *MEDIA_MIMETYPE_AUDIO_MPEG_LAYER_I;
 extern const char *MEDIA_MIMETYPE_AUDIO_MPEG_LAYER_II;
 extern const char *MEDIA_MIMETYPE_AUDIO_AAC;
+extern const char *MEDIA_MIMETYPE_AUDIO_AAC_ELD;
 extern const char *MEDIA_MIMETYPE_AUDIO_QCELP;
 extern const char *MEDIA_MIMETYPE_AUDIO_VORBIS;
 extern const char *MEDIA_MIMETYPE_AUDIO_G711_ALAW;

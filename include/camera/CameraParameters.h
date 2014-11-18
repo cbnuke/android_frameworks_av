@@ -1099,6 +1099,7 @@ public:
     static const char PIXEL_FORMAT_YVU420SP[];
     static const char PIXEL_FORMAT_YVU420P[];
     static const char PIXEL_FORMAT_YUV420MB[];
+    static const char PIXEL_FORMAT_UYV422I[];
     static const char FOCUS_MODE_FACEDETECT[];
     static const char FOCUS_MODE_TOUCHAF[];
     static const char ISO_50[];
