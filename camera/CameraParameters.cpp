@@ -21,6 +21,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <camera/CameraParameters.h>
+#include <camera/CameraParametersExtra.h>
 
 namespace android {
 // Parameter keys to communicate between camera application and driver.
@@ -278,7 +279,7 @@ const char CameraParameters::WHITE_BALANCE_DAYLIGHT[] = "daylight";
 const char CameraParameters::WHITE_BALANCE_CLOUDY_DAYLIGHT[] = "cloudy-daylight";
 const char CameraParameters::WHITE_BALANCE_TWILIGHT[] = "twilight";
 const char CameraParameters::WHITE_BALANCE_SHADE[] = "shade";
-#ifdef OPPO_CAMERA_HARDWARE
+#ifdef QCOM_HARDWARE
 const char CameraParameters::WHITE_BALANCE_MANUAL_CCT[] = "manual-cct";
 #endif
 
@@ -389,7 +390,7 @@ const char CameraParameters::FOCUS_MODE_FIXED[] = "fixed";
 const char CameraParameters::FOCUS_MODE_EDOF[] = "edof";
 const char CameraParameters::FOCUS_MODE_CONTINUOUS_VIDEO[] = "continuous-video";
 const char CameraParameters::FOCUS_MODE_CONTINUOUS_PICTURE[] = "continuous-picture";
-#ifdef OPPO_CAMERA_HARDWARE
+#ifdef QCOM_HARDWARE
 const char CameraParameters::FOCUS_MODE_MANUAL_POSITION[] = "manual";
 #endif
 #if defined(QCOM_HARDWARE)
@@ -556,6 +557,9 @@ const char CameraParameters::VINTAGE_MODE_COOL[] = "cool";
 const char CameraParameters::VINTAGE_MODE_NORMAL[] = "normal";
 const char CameraParameters::VINTAGE_MODE_OFF[] = "off";
 const char CameraParameters::VINTAGE_MODE_WARM[] = "warm";
+#endif
+#ifdef CAMERA_PARAMETERS_EXTRA_C
+CAMERA_PARAMETERS_EXTRA_C
 #endif
 
 CameraParameters::CameraParameters()
