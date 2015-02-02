@@ -4876,9 +4876,6 @@ static const char *vendorVideoCompressionFormatString(OMX_VIDEO_CODINGTYPE type)
         "OMX_VIDEO_CodingDIVX",
         "OMX_VIDEO_CodingHEVC",
         "OMX_VIDEO_CodingFFMPEG",
-#ifdef STE_HARDWARE
-        "OMX_VIDEO_CodingVC1",
-#endif
     };
 
     CHECK_GE(type, OMX_VIDEO_CodingVendorStartUnused);
