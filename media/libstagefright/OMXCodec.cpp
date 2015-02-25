@@ -1624,7 +1624,7 @@ status_t OMXCodec::setVideoOutputFormat(
         }
         if (err != OK) {
             ALOGE("Not a supported video mime type: %s", mime);
-            CHECK(!"Should not be here. Not a supported video mime type.");
+            return err;
         }
     }
 
