@@ -1052,7 +1052,8 @@ void NuPlayer::onResume() {
     }
     // |mAudioDecoder| may have been released due to the pause timeout, so re-create it if
     // needed.
-    if (audioDecoderStillNeeded() && mAudioDecoder == NULL) {
+    if (audioDecoderStillNeeded() && mAudioDecoder == NULL
+            && !ExtendedUtils::ShellProp::isAudioDisabled(false)) {
         instantiateDecoder(true /* audio */, &mAudioDecoder);
     }
     if (mRenderer != NULL) {
@@ -1107,14 +1108,7 @@ void NuPlayer::onStart() {
         flags |= Renderer::FLAG_REAL_TIME;
     }
 
-    int64_t duration = 0ll;
     sp<MetaData> audioMeta = mSource->getFormatMeta(true /* audio */);
-    if (audioMeta.get() && (
-            !audioMeta->findInt64(kKeyDuration, &duration) || duration == 0)) {
-        mSource->getCachedDuration(&duration);
-        audioMeta->setInt64(kKeyDuration, duration);
-    }
-
     audio_stream_type_t streamType = AUDIO_STREAM_MUSIC;
     if (mAudioSink != NULL) {
         streamType = mAudioSink->getAudioStreamType();
