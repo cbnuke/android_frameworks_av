@@ -2481,6 +2481,7 @@ status_t OMXCodec::allocateOutputBuffersFromNativeWindow() {
 #else
             def.format.video.eColorFormat);
 #endif
+#endif
 #else
     OMX_COLOR_FORMATTYPE eColorFormat;
 
