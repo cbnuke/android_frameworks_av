@@ -70,6 +70,7 @@
 #include <media/stagefright/foundation/ABuffer.h>
 #include <media/stagefright/foundation/ADebug.h>
 #include <media/stagefright/foundation/AMessage.h>
+#include <media/stagefright/foundation/AUtils.h>
 #include <media/stagefright/MediaBuffer.h>
 #include <media/stagefright/MediaBufferGroup.h>
 #include <media/stagefright/MediaDefs.h>
@@ -270,8 +271,7 @@ status_t MPEG4DataSource::initCheck() const {
 ssize_t MPEG4DataSource::readAt(off64_t offset, void *data, size_t size) {
     Mutex::Autolock autoLock(mLock);
 
-    if (offset >= mCachedOffset
-            && offset + size <= mCachedOffset + mCachedSize) {
+    if (isInRange(mCachedOffset, mCachedSize, offset, size)) {
         memcpy(data, &mCache[offset - mCachedOffset], size);
         return size;
     }
@@ -1314,7 +1314,7 @@ status_t MPEG4Extractor::parseChunk(off64_t *offset, int depth) {
                     duration = ntohl(duration32);
                 }
             }
-            if (duration != 0) {
+            if (duration != 0 && mLastTrack->timescale != 0) {
                 mLastTrack->meta->setInt64(
                         kKeyDuration, (duration * 1000000) / mLastTrack->timescale);
             }
@@ -1612,6 +1612,9 @@ status_t MPEG4Extractor::parseChunk(off64_t *offset, int depth) {
         case FOURCC('s', 't', 'c', 'o'):
         case FOURCC('c', 'o', '6', '4'):
         {
+            if ((mLastTrack == NULL) || (mLastTrack->sampleTable == NULL))
+                return ERROR_MALFORMED;
+
             status_t err =
                 mLastTrack->sampleTable->setChunkOffsetParams(
                         chunk_type, data_offset, chunk_data_size);
@@ -1627,6 +1630,9 @@ status_t MPEG4Extractor::parseChunk(off64_t *offset, int depth) {
 
         case FOURCC('s', 't', 's', 'c'):
         {
+            if ((mLastTrack == NULL) || (mLastTrack->sampleTable == NULL))
+                return ERROR_MALFORMED;
+
             status_t err =
                 mLastTrack->sampleTable->setSampleToChunkParams(
                         data_offset, chunk_data_size);
@@ -1643,6 +1649,9 @@ status_t MPEG4Extractor::parseChunk(off64_t *offset, int depth) {
         case FOURCC('s', 't', 's', 'z'):
         case FOURCC('s', 't', 'z', '2'):
         {
+            if ((mLastTrack == NULL) || (mLastTrack->sampleTable == NULL))
+                return ERROR_MALFORMED;
+
             status_t err =
                 mLastTrack->sampleTable->setSampleSizeParams(
                         chunk_type, data_offset, chunk_data_size);
@@ -1712,6 +1721,9 @@ status_t MPEG4Extractor::parseChunk(off64_t *offset, int depth) {
 
         case FOURCC('s', 't', 't', 's'):
         {
+            if ((mLastTrack == NULL) || (mLastTrack->sampleTable == NULL))
+                return ERROR_MALFORMED;
+
             *offset += chunk_size;
 
             status_t err =
@@ -1727,6 +1739,9 @@ status_t MPEG4Extractor::parseChunk(off64_t *offset, int depth) {
 
         case FOURCC('c', 't', 't', 's'):
         {
+            if ((mLastTrack == NULL) || (mLastTrack->sampleTable == NULL))
+                return ERROR_MALFORMED;
+
             *offset += chunk_size;
 
             status_t err =
@@ -1742,6 +1757,9 @@ status_t MPEG4Extractor::parseChunk(off64_t *offset, int depth) {
 
         case FOURCC('s', 't', 's', 's'):
         {
+            if ((mLastTrack == NULL) || (mLastTrack->sampleTable == NULL))
+                return ERROR_MALFORMED;
+
             *offset += chunk_size;
             // Ignore stss block for audio even if its present
             // All audio sample are sync samples itself,
@@ -2024,7 +2042,7 @@ status_t MPEG4Extractor::parseChunk(off64_t *offset, int depth) {
                 }
                 duration = d32;
             }
-            if (duration != 0) {
+            if (duration != 0 && mHeaderTimescale != 0) {
                 mFileMetaData->setInt64(kKeyDuration, duration * 1000000 / mHeaderTimescale);
             }
 
@@ -2073,7 +2091,7 @@ status_t MPEG4Extractor::parseChunk(off64_t *offset, int depth) {
                 return ERROR_MALFORMED;
             }
 
-            if (duration != 0) {
+            if (duration != 0 && mHeaderTimescale != 0) {
                 mFileMetaData->setInt64(kKeyDuration, duration * 1000000 / mHeaderTimescale);
             }
 
@@ -2155,8 +2173,9 @@ status_t MPEG4Extractor::parseChunk(off64_t *offset, int depth) {
                 size = 0;
             }
 
-            if (SIZE_MAX - chunk_size <= size)
+            if ((chunk_size > SIZE_MAX) || (SIZE_MAX - chunk_size <= size)) {
                 return ERROR_MALFORMED;
+            }
 
             uint8_t *buffer = new (std::nothrow) uint8_t[size + chunk_size];
             if (buffer == NULL) {
@@ -2299,6 +2318,8 @@ status_t MPEG4Extractor::parseSegmentIndex(off64_t offset, size_t size) {
         return ERROR_MALFORMED;
     }
     ALOGV("sidx refid/timescale: %d/%d", referenceId, timeScale);
+    if (timeScale == 0)
+        return ERROR_MALFORMED;
 
     uint64_t earliestPresentationTime;
     uint64_t firstOffset;
@@ -2488,7 +2509,7 @@ status_t MPEG4Extractor::parseTrackHeader(
 }
 
 status_t MPEG4Extractor::parseITunesMetaData(off64_t offset, size_t size) {
-    if (size < 4) {
+    if (size < 4 || size == SIZE_MAX) {
         return ERROR_MALFORMED;
     }
 
@@ -4194,12 +4215,12 @@ status_t MPEG4Source::read(
             size_t dstOffset = 0;
 
             while (srcOffset < size) {
-                bool isMalFormed = (srcOffset + mNALLengthSize > size);
+                bool isMalFormed = !isInRange((size_t)0u, size, srcOffset, mNALLengthSize);
                 size_t nalLength = 0;
                 if (!isMalFormed) {
                     nalLength = parseNALSize(&mSrcBuffer[srcOffset]);
                     srcOffset += mNALLengthSize;
-                    isMalFormed = srcOffset + nalLength > size;
+                    isMalFormed = !isInRange((size_t)0u, size, srcOffset, nalLength);
                 }
 
                 if (isMalFormed) {
@@ -4471,12 +4492,12 @@ status_t MPEG4Source::fragmentedRead(
             size_t dstOffset = 0;
 
             while (srcOffset < size) {
-                bool isMalFormed = (srcOffset + mNALLengthSize > size);
+                bool isMalFormed = !isInRange((size_t)0u, size, srcOffset, mNALLengthSize);
                 size_t nalLength = 0;
                 if (!isMalFormed) {
                     nalLength = parseNALSize(&mSrcBuffer[srcOffset]);
                     srcOffset += mNALLengthSize;
-                    isMalFormed = srcOffset + nalLength > size;
+                    isMalFormed = !isInRange((size_t)0u, size, srcOffset, nalLength);
                 }
 
                 if (isMalFormed) {
