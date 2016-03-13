@@ -79,6 +79,11 @@ private:
     status_t convertTIYUV420PackedSemiPlanar(
             const BitmapParams &src, const BitmapParams &dst);
 
+#ifdef STE_HARDWARE
+    status_t convertSTEYUV420PackedSemiPlanarMB(
+            const BitmapParams &src, const BitmapParams &dst);
+#endif
+
     ColorConverter(const ColorConverter &);
     ColorConverter &operator=(const ColorConverter &);
 };
